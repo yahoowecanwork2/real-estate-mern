@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 const dbConnect = async () => {
   try {
     mongoose.set("strictQuery", false);
-    const connected = mongoose.connect(process.env.MONGO_URI, {
+    const connected = await mongoose.connect(process.env.MONGO_URI, {
       dbName: "Real-State-MERN",
     });
     console.log(
