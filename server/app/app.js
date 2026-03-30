@@ -1,6 +1,9 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
+import morgan from "morgan";
+import userRoutes from "../routes/userRoutes.js";
+
 dotenv.config();
 // import Razorpay from "razorpay";
 // import morgan from "morgan";
@@ -23,6 +26,9 @@ app.use(
     credentials: true,
   }),
 );
+
+app.use("/api/v1/user", userRoutes);
+
 app.get("/", (req, res) => {
   res.send("API running 🚀");
 });
