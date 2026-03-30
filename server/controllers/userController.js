@@ -1,6 +1,7 @@
 import User from "../models/user.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import sendRegisterAndResendOtpMail from "../middleware/sendMailer.js";
 
 // register user
 export const registerUser = async (req, res) => {
@@ -25,25 +26,34 @@ export const registerUser = async (req, res) => {
       role,
       password: hashedpassword,
     });
-    const token = jwt.sign({ id: user._id }, process.env.ACTIVATION_SECRET, {
-      expiresIn: "5m",
-    });
-    res.status(201).json(
+    const otp = Math.floor(100000 + Math.random() * 1000000);
+
+    const token = jwt.sign(
       {
-        message: "user register sccessfully",
-        user: {
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        },
+        user,
+        otp,
       },
-      token,
+      process.env.ACTIVATION_SECRET,
+      {
+        expiresIn: "5m",
+      },
     );
+    const data = {
+      name,
+      otp,
+    };
+    await sendRegisterAndResendOtpMail(email, "Real state", data);
+    res.status(201).json({
+      success: true,
+      status: "success",
+      message: "Otp send to your mail successfully",
+      token: token,
+    });
   } catch (error) {
     console.log(error);
     return res.status(500).json({
       success: false,
-      message: "Failed to verify",
+      message: "Failed to register",
     });
   }
 };
