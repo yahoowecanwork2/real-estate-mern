@@ -1,9 +1,10 @@
-import { createTransport } from "nodemailer";
 import nodemailer from "nodemailer";
 // use while registration and use in resend otp
 const sendRegisterAndResendOtpMail = async (email, subject, data) => {
   const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
     auth: {
       user: process.env.GMAIL,
       pass: process.env.PASSWORD,
