@@ -6,6 +6,7 @@ import {
   logoutToAll,
   refreshToken,
   registerUser,
+  userVerify,
 } from "../controllers/userController.js";
 
 const userRoutes = express.Router();
@@ -13,6 +14,8 @@ const userRoutes = express.Router();
 // routes
 // register
 userRoutes.post("/register", registerUser);
+// otp verify
+userRoutes.post("/verify", userVerify);
 // login
 userRoutes.post("/login", loginUser);
 
