@@ -148,6 +148,84 @@ export const registerUser = async (req, res) => {
     });
   }
 };
+export const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    console.log(req.body);
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(409).json({
+        message: "Invaild email or password",
+      });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        message: "Invalid email or password",
+      });
+    }
+    const refreshToken = jwt.sign(
+      {
+        id: user._id,
+      },
+      process.env.ACTIVATION_SECRET,
+      {
+        expiresIn: "5m",
+      },
+    );
+
+    const refreshTokenHash = createHash("sha256")
+      .update(refreshToken)
+      .digest("hex");
+    console.log("Creating  login session...");
+    const session = await sessionModal.create({
+      user: user._id,
+      refreshTokenHash,
+      ip: req.ip,
+      userAgent: req.headers["user-agent"],
+    });
+    console.log("Session login created 👉", session);
+
+    const accesstoken = jwt.sign(
+      {
+        id: user._id,
+        sessionId: session._id,
+      },
+      process.env.ACTIVATION_SECRET,
+      {
+        expiresIn: "15m",
+      },
+    );
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, //7days
+    });
+
+    res.status(201).json({
+      success: true,
+      status: "success",
+      message: "login successfully",
+      user: {
+        user: user.name,
+        email: user.email,
+      },
+      token: accesstoken,
+    });
+  } catch (error) {
+    console.log("ERROR ", error.message);
+    console.log("FULL ERROR ", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to login",
+    });
+  }
+};
 export const getMeUser = async (req, res) => {
   try {
     const { name, email, role, password } = req.body;
@@ -283,14 +361,46 @@ export const refreshToken = async (req, res) => {
     });
   }
 };
+export const logoutToAll = async (req, res) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(400).json({
+        message: "refresh token not found",
+      });
+    }
+
+    // ✅ decode token
+    const decoded = jwt.verify(refreshToken, process.env.ACTIVATION_SECRET);
+
+    // ✅ logout from ALL devices (important change)
+    await sessionModal.updateMany(
+      {
+        user: decoded.id,
+        revoked: false,
+      },
+      {
+        $set: { revoked: true },
+      },
+    );
+
+    res.clearCookie("refreshToken");
+
+    return res.status(200).json({
+      success: true,
+      message: "Logged out from all devices successfully",
+    });
+  } catch (error) {
+    console.log("ERROR 👉", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to logout all devices",
+    });
+  }
+};
 export const logout = async (req, res) => {
   try {
-    // const refreshToken = req.cookies.refreshToken;
-    // if (!refreshToken) {
-    //   res.status(400).json({
-    //     message: "refresh token not found",
-    //   });
-    // }
     const refreshToken = req.cookies.refreshToken;
 
     if (!refreshToken) {
@@ -323,7 +433,7 @@ export const logout = async (req, res) => {
     console.log(error);
     return res.status(500).json({
       success: false,
-      message: "Failed to refreshToken",
+      message: "Failed to logout",
     });
   }
 };
