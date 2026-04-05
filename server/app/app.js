@@ -7,11 +7,12 @@ import userRoutes from "../routes/userRoutes.js";
 dotenv.config();
 // import Razorpay from "razorpay";
 // import morgan from "morgan";
-// import cookieParser from "cookie-parser";
+import cookieParser from "cookie-parser";
 import dbConnect from "../config/dbConfig.js";
 
 dbConnect();
 const app = express();
+app.use(cookieParser());
 // export const instance = new Razorpay({
 //   key_id: process.env.RAZORPAY_KEY,
 //   key_secret: process.env.RAZORPAY_SECRET,
