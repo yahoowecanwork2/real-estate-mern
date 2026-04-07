@@ -1,6 +1,6 @@
-import jwt from "jsonwebtoken";
+import User from "../models/user.js";
 
-export const isAuth = (req, res, next) => {
+export const isAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -14,7 +14,15 @@ export const isAuth = (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.ACTIVATION_SECRET);
 
-    req.user = decoded; // { id, sessionId }
+    const user = await User.findById(decoded.id).select("-password");
+
+    if (!user) {
+      return res.status(401).json({
+        message: "User not found",
+      });
+    }
+
+    req.user = user;
 
     next();
   } catch (error) {
@@ -22,20 +30,4 @@ export const isAuth = (req, res, next) => {
       message: "Invalid or expired token",
     });
   }
-};
-export const authorizeRoles = (...roles) => {
-  return (req, res, next) => {
-    try {
-      if (!roles.includes(req.user.role)) {
-        return res.status(403).json({
-          message: "Access denied",
-        });
-      }
-      next();
-    } catch (error) {
-      return res.status(500).json({
-        message: "Role check failed",
-      });
-    }
-  };
 };

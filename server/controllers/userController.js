@@ -207,6 +207,7 @@ export const loginUser = async (req, res) => {
     const refreshToken = jwt.sign(
       {
         id: user._id,
+        role: user.role, // ✅ IMPORTANT
       },
       process.env.ACTIVATION_SECRET,
       {
@@ -267,72 +268,21 @@ export const loginUser = async (req, res) => {
 };
 export const getMeUser = async (req, res) => {
   try {
-    const { name, email, role, password } = req.body;
-    console.log(req.body);
-    const isAlreadyRegistered = await User.findOne({
-      $or: [{ name }, { email }],
-    });
-    if (isAlreadyRegistered) {
-      res.status(409).json({
-        message: "user or email already exist",
+    const user = await User.findById(req.user.id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
       });
     }
-    // hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedpassword = await bcrypt.hash(password, salt);
-    // create
-    const user = await User.create({
-      name,
-      email,
-      role,
-      password: hashedpassword,
-    });
-    const otp = Math.floor(100000 + Math.random() * 1000000);
 
-    const accessToken = jwt.sign(
-      {
-        user,
-        otp,
-      },
-      process.env.ACTIVATION_SECRET,
-      {
-        expiresIn: "15m",
-      },
-    );
-    const refreshToken = jwt.sign(
-      {
-        user,
-        otp,
-      },
-      process.env.ACTIVATION_SECRET,
-      {
-        expiresIn: "5m",
-      },
-    );
-    const data = {
-      name,
-      otp,
-    };
-    await sendRegisterAndResendOtpMail(email, "Real state", data);
-
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, //7days
-    });
-
-    res.status(201).json({
+    res.status(200).json({
       success: true,
-      status: "success",
-      message: "Otp send to your mail successfully",
-      token: accessToken,
+      user,
     });
   } catch (error) {
-    console.log(error);
     return res.status(500).json({
-      success: false,
-      message: "Failed to register",
+      message: "Failed to fetch user",
     });
   }
 };
@@ -368,16 +318,18 @@ export const refreshToken = async (req, res) => {
       },
     );
     const newRefreshToken = jwt.sign(
-      { id: decorded.id },
+      {
+        id: decorded.id,
+        role: decorded.role,
+      },
       process.env.ACTIVATION_SECRET,
       {
         expiresIn: "7d",
       },
     );
     const newRefreshTokenHash = createHash("sha256")
-      .update(refreshToken)
+      .update(newRefreshToken)
       .digest("hex");
-
     session.refreshTokenHash = newRefreshTokenHash;
     await session.save();
     res.cookie("refreshToken", newRefreshToken, {
