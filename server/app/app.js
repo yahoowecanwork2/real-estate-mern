@@ -9,6 +9,7 @@ dotenv.config();
 // import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import dbConnect from "../config/dbConfig.js";
+import propertyRoutes from "../routes/propertyRoutes.js";
 
 dbConnect();
 const app = express();
@@ -29,6 +30,7 @@ app.use(
 );
 
 app.use("/api/v1/user", userRoutes);
+app.use("/api/v1/property", propertyRoutes);
 
 app.get("/", (req, res) => {
   res.send("API running 🚀");
