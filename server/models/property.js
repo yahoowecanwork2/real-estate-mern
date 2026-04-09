@@ -89,9 +89,10 @@ const propertySchema = new mongoose.Schema(
       default: false,
     },
 
-    isSold: {
-      type: Boolean,
-      default: false,
+    status: {
+      type: String,
+      enum: ["available", "sold", "rented"],
+      default: "available",
     },
   },
   { timestamps: true },
